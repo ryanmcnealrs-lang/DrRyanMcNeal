@@ -48,8 +48,7 @@ As Org Admin, I manage access control across the Snyk organization:
 ```
 Snyk Org Admin
     ├── Admins       → Full access: manage settings, projects, integrations
-    ├── Collaborators → View/triage: test projects, manage ignores within scope
-    └── Viewers       → Read-only: dashboards and reports
+    └── Collaborators → View/triage: test projects, manage ignores within scope
 ```
 
 ---
@@ -72,17 +71,18 @@ Vulnerabilities are tracked from detection through closure against defined SLA t
 
 | Severity | Production SLA | Non-Production SLA |
 |----------|---------------|-------------------|
-| Critical | 3 days | 7 days |
-| High | 7 days | 30 days |
-| Medium | 30 days | 90 days |
-| Low | 90 days | Best effort |
+| Critical | 15 days | 15 days |
+| High | 30 days | 30 days |
+| Medium | N/A | 90 days |
+| Low | N/A | 365 days |
 
 **Workflow:**
 1. Snyk detects a vulnerability during a scan (CI pipeline, scheduled monitor, or PR check)
 2. Issue is triaged — severity confirmed, context assessed (reachability, exploitability, environment)
-3. Jira ticket created (automated or manual) and assigned to the responsible team
-4. Remediation tracked through closure; SLA breach triggers escalation
-5. Verification scan confirms fix prior to ticket closure
+3. Vulnerabilities are "ignored" or suppressed where not exploitable or not fixable
+4. Jira ticket created (manual through integration) for remediations and assigned to the responsible team or member. In my experience, the Scrum Master.
+5. Remediation tracked through closure; SLA breach triggers escalation
+6. Verification scan and QA testing confirms fix prior to ticket closure
 
 ---
 
@@ -95,7 +95,7 @@ Not all vulnerabilities carry equal real-world risk. Each finding is assessed us
 - **CVSS vector analysis** — attack complexity, authentication requirements, impact scope
 - **Environmental context** — is the affected component exposed to the internet, or internal only?
 
-This triage process ensures engineering effort is directed at the vulnerabilities most likely to be exploited, not just those with the highest theoretical score.
+This triage process ensures engineering effort is directed at the vulnerabilities most likely to be exploited, not just those with the highest theoretical score. Where the security officer cannot determine exploitability, tickets are created for either analysis or remediation. Snyk provides a feature allowing a security officer to "ignore" or suppress the finding dynamically, "until a fix is available". 
 
 ---
 
@@ -103,7 +103,7 @@ This triage process ensures engineering effort is directed at the vulnerabilitie
 
 Not every finding requires a fix. I manage a structured ignore policy for:
 
-- **False positives** — findings flagged due to library naming conflicts or scanner misidentification; documented and ignored with justification
+- **False positives** — findings flagged due to library naming conflicts or errors in project importing and scanning
 - **Unremediated vulnerabilities** — no fix available from the upstream maintainer; ignored with expiry date and reviewed on a defined cadence
 - **Accepted risk** — risk formally accepted by the application owner; business justification documented within the ignore rule
 
@@ -116,20 +116,18 @@ All ignores include:
 
 ### 6. Jira Integration — Ticket Creation & Lifecycle Management
 
-Snyk is integrated with Jira to automate the creation of security tickets and eliminate manual handoff friction:
+Snyk can be integrated with Jira to streamline the creation of security tickets and eliminate manual population and handoff friction:
 
-**Automatic ticket creation** is configured for Critical and High severity findings — a Jira issue is opened the moment a vulnerability is detected in a monitored project.
-
-**Manual ticket creation** is used for Medium/Low findings that have been triaged and confirmed for remediation.
+**Assisted ticket creation** is used for all relevant findings that have been  confirmed for remediation.
 
 Each Jira ticket includes:
 - CVE/CWE identifiers
 - Affected package, version, and fix version
 - Snyk issue URL for full context
-- SLA due date based on severity and environment
+- SLA due date based on severity
 - Recommended remediation steps pulled directly from Snyk's database
 
-The Jira integration is bidirectional — ticket status updates in Jira are reflected in Snyk's issue view, and closing a ticket after remediation triggers a re-scan to verify the fix.
+The Jira integration linked the Jira ticket to the vulnerability in the Snyk UI, allowing quick tracking and navigation. The Snyk platform allows filtering and sorting on vulnerabilities with Jira issues assigned, enhancing the reporting and analysis capabilities of security officers to leadership. 
 
 ---
 
@@ -152,7 +150,11 @@ Auto PR opened in GitHub repo
   └── Status check: Snyk re-scans PR branch
             │
             ▼
-Engineer reviews → merges → Snyk verifies → issue closed
+If low risk → If all checks pass → Security Officer auto-merges
+            │
+            ▼
+If high risk → If all checks pass → Security Officer requests PRs → Merge or ticket accordingly
+
 ```
 
 ---
@@ -162,7 +164,7 @@ Engineer reviews → merges → Snyk verifies → issue closed
 ```
 Scan 1 (Baseline)     → Establishes vulnerability baseline for the project
 Scan 2 (Post-deploy)  → New Critical identified: lodash prototype pollution (CVE-2019-10744)
-                         → Jira ticket auto-created, SLA clock starts (3 days, Prod)
+                         → Jira ticket created, SLA clock starts (15 days)
                          → Snyk opens fix PR: lodash 4.17.11 → 4.17.21
 Scan 3 (Post-merge)   → Vulnerability resolved; Jira ticket closed; SLA met
 Scan 4 (Weekly cycle) → No new Criticals; 2 Mediums triaged, ignored with expiry
@@ -172,7 +174,7 @@ Scan 4 (Weekly cycle) → No new Criticals; 2 Mediums triaged, ignored with expi
 
 ## 🛡️ Compliance & Reporting
 
-- **Weekly vulnerability reports** distributed to security leadership — open issues by severity, SLA compliance rate, trending over time
+- **Weekly vulnerability reports** briefed to program leadership — open issues by severity, SLA compliance rate, trending over time
 - **Audit logs** maintained for all ignore rules, access changes, and policy modifications (Snyk Org Admin audit trail)
 - Supports internal compliance requirements and AppSec program metrics
 
