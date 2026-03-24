@@ -1,4 +1,3 @@
-# DrRyanMcNeal
 # Dynamic Application Security Testing with Snyk
 ### A Practical Guide to Enterprise Vulnerability Management
 
